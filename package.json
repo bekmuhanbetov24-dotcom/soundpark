@@ -1,0 +1,13 @@
+{
+  "name": "soundpark",
+  "private": true,
+  "workspaces": [
+    "apps/*"
+  ],
+  "scripts": {
+    "dev:api": "npm run start:dev --workspace=api",
+    "dev:mobile": "npm run start --workspace=mobile",
+    "db:up": "docker compose up -d postgres",
+    "db:down": "docker compose down"
+  }
+}

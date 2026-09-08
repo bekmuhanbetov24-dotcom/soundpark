@@ -1,0 +1,23 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+.expo/
+web-build/
+
+# Environment files
+.env
+.env.*
+!.env.example
+
+# Mobile signing and local files
+*.keystore
+*.p8
+*.p12
+*.mobileprovision
+
+# OS and editors
+.DS_Store
+.idea/
+.vscode/
