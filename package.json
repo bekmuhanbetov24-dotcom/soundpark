@@ -6,7 +6,7 @@
   ],
   "scripts": {
     "dev:api": "npm run start:dev --workspace=api",
-    "dev:mobile": "npm run start --workspace=mobile",
+    "dev:web": "npm run dev --workspace=web",
     "db:up": "docker compose up -d postgres",
     "db:down": "docker compose down"
   }
