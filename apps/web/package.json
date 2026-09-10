@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build && tsc --ignoreConfig server/index.ts --target ES2022 --module ESNext --lib ES2022,WebWorker --outDir dist/server --skipLibCheck && node server/embed-assets.mjs",
+    "build:pages": "tsc -b && vite build --mode github --base=/soundpark/",
     "lint": "oxlint",
     "preview": "vite preview"
   },
@@ -14,6 +15,7 @@
     "@emotion/styled": "^11.14.1",
     "@mui/icons-material": "^9.4.0",
     "@mui/material": "^9.4.0",
+    "@supabase/supabase-js": "^2.116.0",
     "react": "^19.2.8",
     "react-dom": "^19.2.8"
   },

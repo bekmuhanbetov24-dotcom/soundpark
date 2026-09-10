@@ -9,11 +9,13 @@ import {
 import {
   AddRounded, ArchiveOutlined, AssessmentOutlined, ChevronLeftRounded, ChevronRightRounded,
   DarkModeOutlined, DashboardOutlined, EditOutlined, EventNoteOutlined, LightModeOutlined,
-  DeleteOutlined, MenuRounded, PeopleAltOutlined, SettingsOutlined,
+  DeleteOutlined, LogoutRounded, MenuRounded, PeopleAltOutlined, SettingsOutlined,
 } from '@mui/icons-material'
 import './App.css'
+import { supabase, supabaseApi, usesSupabase } from './supabase'
 
 const API_URL = import.meta.env.VITE_API_URL ?? (window.location.hostname === 'localhost' ? 'http://localhost:3000' : '')
+const ASSET_BASE = import.meta.env.BASE_URL
 const drawerWidth = 260
 const collapsedWidth = 76
 
@@ -52,6 +54,7 @@ const formatDate = (value: string) => {
 }
 
 async function api<T>(path: string, options?: RequestInit): Promise<T> {
+  if (usesSupabase) return supabaseApi<T>(path, options)
   const response = await fetch(`${API_URL}${path}`, { ...options, headers: { 'Content-Type': 'application/json', ...options?.headers } })
   if (!response.ok) {
     const payload = await response.json().catch(() => null) as { message?: string } | null
@@ -60,7 +63,7 @@ async function api<T>(path: string, options?: RequestInit): Promise<T> {
   return response.json() as Promise<T>
 }
 
-function App() {
+function AdminApp({ onLogout }: { onLogout?: () => void }) {
   const [mode, setMode] = useState<'light' | 'dark'>(() => localStorage.getItem('soundpark-theme') === 'dark' ? 'dark' : 'light')
   const [page, setPage] = useState<Page>('dashboard')
   const [collapsed, setCollapsed] = useState(false)
@@ -92,7 +95,7 @@ function App() {
   useEffect(() => { localStorage.setItem('soundpark-theme', mode); document.documentElement.dataset.theme = mode }, [mode])
 
   const drawer = <Box className="sidebar-inner">
-    <Box className={`brand ${collapsed && desktop ? 'brand-collapsed' : ''}`}><img src="/brand/soundpark-logo.png" alt="SoundPark" /></Box>
+    <Box className={`brand ${collapsed && desktop ? 'brand-collapsed' : ''}`}><img src={`${ASSET_BASE}brand/soundpark-logo.png`} alt="SoundPark" /></Box>
     <Divider />
     <List className="nav-list">{menuItems.map(item => <Tooltip key={item.id} title={collapsed && desktop ? item.label : ''} placement="right"><ListItemButton selected={page === item.id} onClick={() => { setPage(item.id); setMobileOpen(false) }}><ListItemIcon>{item.icon}</ListItemIcon>{(!collapsed || !desktop) && <ListItemText primary={item.label} />}</ListItemButton></Tooltip>)}</List>
     <Box className="sidebar-user"><Avatar>А</Avatar>{(!collapsed || !desktop) && <Box><Typography variant="body2" sx={{ fontWeight: 700 }}>Администратор</Typography><Typography variant="caption" color="text.secondary">Полный доступ</Typography></Box>}</Box>
@@ -105,6 +108,7 @@ function App() {
       {desktop && <IconButton onClick={() => setCollapsed(value => !value)} aria-label={collapsed ? 'Развернуть меню' : 'Свернуть меню'}>{collapsed ? <ChevronRightRounded /> : <ChevronLeftRounded />}</IconButton>}
       <Typography variant="h6" component="h1" sx={{ flexGrow: 1 }}>{pageTitles[page]}</Typography>
       <Tooltip title={mode === 'light' ? 'Тёмная тема' : 'Светлая тема'}><IconButton onClick={() => setMode(value => value === 'light' ? 'dark' : 'light')} aria-label="Переключить тему">{mode === 'light' ? <DarkModeOutlined /> : <LightModeOutlined />}</IconButton></Tooltip>
+      {onLogout && <Tooltip title="Выйти"><IconButton onClick={onLogout} aria-label="Выйти"><LogoutRounded /></IconButton></Tooltip>}
     </Toolbar></AppBar>
     <Drawer variant={desktop ? 'permanent' : 'temporary'} open={desktop || mobileOpen} onClose={() => setMobileOpen(false)} ModalProps={{ keepMounted: true }} sx={{ '& .MuiDrawer-paper': { width: desktop ? currentWidth : drawerWidth } }}>{drawer}</Drawer>
     <Box component="main" className="main-content" sx={{ ml: desktop ? `${currentWidth}px` : 0 }}><Toolbar /><Box className="page-content">
@@ -115,6 +119,44 @@ function App() {
       {page === 'settings' && <SettingsPage />}
     </Box></Box>
   </Box><Snackbar open={Boolean(notice)} autoHideDuration={4500} onClose={() => setNotice(null)} anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}><Alert severity={notice?.severity ?? 'success'} variant="filled" onClose={() => setNotice(null)}>{notice?.text}</Alert></Snackbar></ThemeProvider>
+}
+
+function LoginPage() {
+  const [password, setPassword] = useState('')
+  const [error, setError] = useState('')
+  const [loading, setLoading] = useState(false)
+  const login = async () => {
+    setLoading(true); setError('')
+    const result = await supabase.auth.signInWithPassword({ email: 'admin@soundpark.local', password })
+    if (result.error) setError('Неверный пароль')
+    setLoading(false)
+  }
+  return <Box sx={{ minHeight: '100vh', bgcolor: '#f5f7f9', display: 'grid', placeItems: 'center', p: 2 }}>
+    <Card sx={{ width: 'min(420px, 100%)' }}><CardContent sx={{ p: 4 }}>
+      <Box className="brand" sx={{ width: 190, mb: 3 }}><img src={`${ASSET_BASE}brand/soundpark-logo.png`} alt="SoundPark" /></Box>
+      <Typography variant="h5" sx={{ fontWeight: 700, mb: 1 }}>Вход администратора</Typography>
+      <Typography color="text.secondary" sx={{ mb: 3 }}>Введите пароль для доступа к заказ-нарядам и расчётам.</Typography>
+      {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
+      <TextField fullWidth autoFocus label="Пароль" type="password" autoComplete="current-password" value={password} onChange={event => setPassword(event.target.value)} onKeyDown={event => { if (event.key === 'Enter' && password) void login() }} />
+      <Button fullWidth variant="contained" sx={{ mt: 2 }} disabled={!password || loading} onClick={() => void login()}>{loading ? 'Вход…' : 'Войти'}</Button>
+    </CardContent></Card>
+  </Box>
+}
+
+function App() {
+  const [ready, setReady] = useState(!usesSupabase)
+  const [authenticated, setAuthenticated] = useState(!usesSupabase)
+
+  useEffect(() => {
+    if (!usesSupabase) return
+    void supabase.auth.getSession().then(({ data }) => { setAuthenticated(Boolean(data.session)); setReady(true) })
+    const { data } = supabase.auth.onAuthStateChange((_event, session) => { setAuthenticated(Boolean(session)); setReady(true) })
+    return () => data.subscription.unsubscribe()
+  }, [])
+
+  if (!ready) return <Box sx={{ minHeight: '100vh', display: 'grid', placeItems: 'center' }}><Typography>Загрузка…</Typography></Box>
+  if (!authenticated) return <LoginPage />
+  return <AdminApp onLogout={usesSupabase ? () => { void supabase.auth.signOut() } : undefined} />
 }
 
 function Dashboard({ orders, helpers, loading, onOpenOrders }: { orders: Order[]; helpers: Helper[]; loading: boolean; onOpenOrders: () => void }) {
