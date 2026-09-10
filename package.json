@@ -7,7 +7,12 @@
   "scripts": {
     "dev:api": "npm run start:dev --workspace=api",
     "dev:web": "npm run dev --workspace=web",
-    "db:up": "docker compose up -d postgres",
-    "db:down": "docker compose down"
+    "db:up": "docker compose up -d --wait postgres",
+    "db:down": "docker compose down",
+    "db:migrate": "npm run db:migrate --workspace=api",
+    "db:check": "npm run db:check --workspace=api",
+    "db:seed:sample": "npm run db:seed:sample --workspace=api",
+    "test": "npm test --workspace=api",
+    "build": "npm run build --workspaces"
   }
 }
