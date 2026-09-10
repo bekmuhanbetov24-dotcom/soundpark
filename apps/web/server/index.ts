@@ -35,6 +35,18 @@ const redirect = (location: string, cookie?: string) => new Response(null, {
   headers: { location, ...(cookie ? { 'set-cookie': cookie } : {}) },
 })
 
+async function serveApp(request: Request, env: Env) {
+  const url = new URL(request.url)
+  const assetUrl = new URL(url.pathname === '/' ? '/index.html' : url.pathname, url)
+  const assetRequest = new Request(assetUrl, request)
+  const asset = await env.ASSETS.fetch(assetRequest)
+
+  if (asset.status !== 404 || request.method !== 'GET') return asset
+  if (!(request.headers.get('accept') || '').includes('text/html')) return asset
+
+  return env.ASSETS.fetch(new Request(new URL('/index.html', url), request))
+}
+
 async function supabase<T>(env: Env, path: string, init: RequestInit = {}, prefer?: string): Promise<T> {
   const response = await fetch(`${env.SUPABASE_URL}/rest/v1/${path}`, {
     ...init,
@@ -236,7 +248,7 @@ export default {
       }
       const response = await handleApi(request, env)
       if (response) return response
-      return env.ASSETS.fetch(request)
+      return serveApp(request, env)
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Неизвестная ошибка'
       if (message === 'CONFLICT') return json({ message: 'Запись с такими данными уже существует' }, 409)
