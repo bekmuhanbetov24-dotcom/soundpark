@@ -1,6 +1,7 @@
 interface Env {
   SUPABASE_URL: string
   SUPABASE_SERVICE_ROLE_KEY: string
+  ADMIN_PASSWORD: string
   ASSETS: { fetch(request: Request): Promise<Response> }
 }
 
@@ -13,6 +14,26 @@ const json = (body: unknown, status = 200) => new Response(JSON.stringify(body),
 
 const parseBody = async (request: Request) => request.json() as Promise<Record<string, unknown>>
 const nullable = (value: unknown) => value === '' || value === undefined ? null : value
+
+const loginPage = (invalid = false) => new Response(`<!doctype html>
+<html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Вход — SoundPark</title><style>
+*{box-sizing:border-box}body{margin:0;min-height:100vh;display:grid;place-items:center;background:#f5f7f9;color:#1d2730;font:16px system-ui,-apple-system,"Segoe UI",sans-serif;padding:20px}
+main{width:min(420px,100%);background:#fff;border:1px solid #e1e6ea;border-radius:12px;padding:32px;box-shadow:0 18px 55px rgba(27,45,58,.1)}
+.brand{font-size:28px;font-weight:800;letter-spacing:-.04em;margin-bottom:6px}.bars{color:#315a77}h1{font-size:20px;margin:28px 0 8px}p{color:#65717b;margin:0 0 22px;line-height:1.45}
+label{display:block;font-size:14px;font-weight:650;margin-bottom:7px}input{width:100%;font:inherit;border:1px solid #bdc7ce;border-radius:8px;padding:12px 13px;outline:none}input:focus{border-color:#315a77;box-shadow:0 0 0 3px rgba(49,90,119,.13)}
+button{width:100%;margin-top:16px;border:0;border-radius:8px;padding:12px;background:#315a77;color:#fff;font:600 15px system-ui;cursor:pointer}.error{color:#b42318;background:#fef3f2;border-radius:7px;padding:9px 11px;margin-bottom:14px;font-size:14px}
+</style></head><body><main><div class="brand"><span class="bars">▥</span> SoundPark</div><h1>Вход администратора</h1><p>Введите пароль для доступа к заказ-нарядам и расчётам.</p>${invalid ? '<div class="error">Неверный пароль</div>' : ''}<form method="post" action="/login"><label for="password">Пароль</label><input id="password" name="password" type="password" autocomplete="current-password" required autofocus><button type="submit">Войти</button></form></main></body></html>`, { headers: { 'content-type': 'text/html; charset=utf-8', 'cache-control': 'no-store' } })
+
+async function sessionToken(password: string) {
+  const bytes = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(`soundpark:${password}`))
+  return Array.from(new Uint8Array(bytes), byte => byte.toString(16).padStart(2, '0')).join('')
+}
+
+const redirect = (location: string, cookie?: string) => new Response(null, {
+  status: 303,
+  headers: { location, ...(cookie ? { 'set-cookie': cookie } : {}) },
+})
 
 async function supabase<T>(env: Env, path: string, init: RequestInit = {}, prefer?: string): Promise<T> {
   const response = await fetch(`${env.SUPABASE_URL}/rest/v1/${path}`, {
@@ -197,6 +218,22 @@ async function handleApi(request: Request, env: Env): Promise<Response | null> {
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
     try {
+      const url = new URL(request.url)
+      if (url.pathname === '/login' && request.method === 'GET') return loginPage(url.searchParams.has('invalid'))
+      if (url.pathname === '/login' && request.method === 'POST') {
+        const form = await request.formData()
+        if (form.get('password') !== env.ADMIN_PASSWORD) return redirect('/login?invalid=1')
+        const token = await sessionToken(env.ADMIN_PASSWORD)
+        return redirect('/', `sp_session=${token}; HttpOnly; Secure; SameSite=Strict; Path=/; Max-Age=2592000`)
+      }
+      if (url.pathname === '/logout') return redirect('/login', 'sp_session=; HttpOnly; Secure; SameSite=Strict; Path=/; Max-Age=0')
+
+      const token = await sessionToken(env.ADMIN_PASSWORD)
+      const authenticated = (request.headers.get('cookie') || '').split(';').some(item => item.trim() === `sp_session=${token}`)
+      if (!authenticated) {
+        const apiPath = url.pathname === '/health' || url.pathname === '/helpers' || url.pathname === '/calculations' || url.pathname.startsWith('/helpers/') || url.pathname.startsWith('/work-orders')
+        return apiPath ? json({ message: 'Требуется вход администратора' }, 401) : redirect('/login')
+      }
       const response = await handleApi(request, env)
       if (response) return response
       return env.ASSETS.fetch(request)
