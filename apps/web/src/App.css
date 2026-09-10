@@ -22,6 +22,14 @@
 .MuiCardContent-root:last-child { padding-bottom: 24px; }
 .clickable-row { cursor: pointer; }
 .comment-cell { max-width: 360px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.helper-actions { display: flex; align-items: center; gap: 12px; }
+.helper-actions .MuiTextField-root { width: 300px; }
+.helper-registry .MuiCardContent-root { padding: 0 !important; }
+.helper-registry .MuiTableCell-root { padding: 4px 10px; height: 38px; font-size: .8rem; line-height: 1.25; border-color: var(--sp-border); }
+.helper-registry .MuiTableCell-head { height: 40px; font-size: .75rem; text-transform: uppercase; letter-spacing: .035em; background: color-mix(in srgb, var(--sp-border) 35%, transparent); }
+.helper-registry .helper-name { font-size: .82rem; font-weight: 650; white-space: nowrap; }
+.helper-registry .comment-cell { max-width: 460px; }
+.compact-empty { min-height: 120px; }
 .empty-state { min-height: 180px; display: grid; place-items: center; align-content: center; gap: 10px; color: var(--sp-muted); }
 .empty-state svg { font-size: 40px; }
 .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; padding-top: 8px; }
@@ -30,18 +38,25 @@
 .role-row { display: flex; align-items: center; gap: 14px; padding: 14px; border: 1px solid var(--sp-border); border-radius: 8px; }
 .dialog-title-row, .section-heading, .participant-card-head, .calculation-card-head, .calculation-order-head, .participant-total { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
 .cost-summary { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; padding: 16px; border: 1px solid var(--sp-border); border-radius: 8px; }
-.participant-grid, .calculation-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+.participant-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+.calculation-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; align-items: start; }
+.calculation-search { width: min(380px, 100%); }
 .participant-card { height: 100%; }
-.work-form-list { display: grid; gap: 10px; }
+.work-form-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
 .work-form-row { display: grid; grid-template-columns: minmax(150px, 1fr) minmax(170px, 220px); align-items: center; gap: 16px; padding: 8px 12px; border: 1px solid var(--sp-border); border-radius: 8px; }
+.active-work-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: 24px; }
 .work-line, .calculation-work { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 32px; color: var(--sp-muted); }
 .work-line.active { color: inherit; }
 .work-line-name { display: flex; align-items: center; gap: 4px; }
 .participant-comment { display: block; margin-top: 14px !important; padding-top: 12px; border-top: 1px solid var(--sp-border); }
 .participant-total { padding: 12px 16px; border-radius: 8px; background: color-mix(in srgb, var(--sp-border) 45%, transparent); }
 .calculation-card-head h5 { font-weight: 750; white-space: nowrap; }
-.calculation-order { padding: 14px; border: 1px solid var(--sp-border); border-radius: 8px; }
+.salary-total { text-align: right; }
+.calculation-order { padding: 10px 12px; border: 1px solid var(--sp-border); border-radius: 8px; }
 .calculation-order-head { align-items: flex-start; }
+.date-field input { min-height: 26px; font-size: 1rem; color-scheme: light; }
+:root[data-theme='dark'] .date-field input { color-scheme: dark; }
 @media (max-width: 1100px) { .metric-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } .detail-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
-@media (max-width: 900px) { .participant-grid, .calculation-grid, .cost-summary { grid-template-columns: 1fr; } }
-@media (max-width: 700px) { .page-content { padding: 18px 14px; } .page-heading, .section-heading, .dialog-title-row, .calculation-card-head { align-items: flex-start; flex-direction: column; } .page-heading .MuiButton-root, .section-heading .MuiButton-root { width: 100%; } .metric-grid, .form-grid, .detail-grid { grid-template-columns: 1fr; } .work-form-row { grid-template-columns: 1fr; gap: 6px; } .MuiTableContainer-root { overflow-x: auto; } .MuiTable-root { min-width: 720px; } }
+@media (max-width: 1050px) { .calculation-grid { grid-template-columns: 1fr; } }
+@media (max-width: 900px) { .participant-grid, .cost-summary, .work-form-list { grid-template-columns: 1fr; } }
+@media (max-width: 700px) { .page-content { padding: 18px 14px; } .page-heading, .section-heading, .calculation-card-head { align-items: flex-start; flex-direction: column; } .page-heading .MuiButton-root, .section-heading .MuiButton-root { width: 100%; } .helper-actions { width: 100%; flex-direction: column; } .helper-actions .MuiTextField-root { width: 100%; } .metric-grid, .form-grid, .detail-grid, .active-work-grid { grid-template-columns: 1fr; } .work-form-row { grid-template-columns: 1fr; gap: 6px; } .MuiTableContainer-root { overflow-x: auto; } .MuiTable-root { min-width: 720px; } }

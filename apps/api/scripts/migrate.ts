@@ -14,8 +14,15 @@ async function migrate() {
       name text PRIMARY KEY, checksum text NOT NULL,
       applied_at timestamptz NOT NULL DEFAULT now()
     )`);
+    const hasSupabaseRoles = (await client.query(
+      "SELECT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'authenticated') AS present",
+    )).rows[0]?.present === true;
     const directory = resolve(__dirname, '../migrations');
     for (const name of (await readdir(directory)).filter(n => n.endsWith('.sql')).sort()) {
+      if (name.includes('supabase') && !hasSupabaseRoles) {
+        console.log(`Skipped ${name} (Supabase only)`);
+        continue;
+      }
       const sql = await readFile(resolve(directory, name), 'utf8');
       const checksum = createHash('sha256').update(sql).digest('hex');
       const existing = await client.query('SELECT checksum FROM schema_migrations WHERE name = $1', [name]);
