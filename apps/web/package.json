@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build && tsc --ignoreConfig server/index.ts --target ES2022 --module ESNext --lib ES2022,WebWorker --outDir dist/server --skipLibCheck && node server/embed-assets.mjs",
-    "build:pages": "tsc -b && vite build --mode github --base=/soundpark/",
+    "build:pages": "tsc -b && vite build --mode github --base=/soundpark/ --outDir=../../docs --emptyOutDir",
     "lint": "oxlint",
     "preview": "vite preview"
   },
