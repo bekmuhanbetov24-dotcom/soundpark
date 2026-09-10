@@ -6,6 +6,11 @@ interface Env {
 }
 
 type Row = Record<string, unknown>
+type EmbeddedAsset = { body: string; contentType: string; binary: boolean }
+
+const EMBEDDED_ASSETS = new Map<string, EmbeddedAsset>(
+  /* __EMBEDDED_ASSETS__ */ []
+)
 
 const json = (body: unknown, status = 200) => new Response(JSON.stringify(body), {
   status,
@@ -35,16 +40,36 @@ const redirect = (location: string, cookie?: string) => new Response(null, {
   headers: { location, ...(cookie ? { 'set-cookie': cookie } : {}) },
 })
 
+function embeddedAsset(path: string) {
+  const asset = EMBEDDED_ASSETS.get(path)
+  if (!asset) return null
+
+  const body = asset.binary
+    ? Uint8Array.from(atob(asset.body), character => character.charCodeAt(0))
+    : asset.body
+
+  return new Response(body, {
+    headers: {
+      'content-type': asset.contentType,
+      'cache-control': path === '/index.html' ? 'no-cache' : 'public, max-age=31536000, immutable',
+    },
+  })
+}
+
 async function serveApp(request: Request, env: Env) {
   const url = new URL(request.url)
-  const assetUrl = new URL(url.pathname === '/' ? '/index.html' : url.pathname, url)
+  const assetPath = url.pathname === '/' ? '/index.html' : url.pathname
+  const embedded = embeddedAsset(assetPath)
+  if (embedded) return embedded
+
+  const assetUrl = new URL(assetPath, url)
   const assetRequest = new Request(assetUrl, request)
   const asset = await env.ASSETS.fetch(assetRequest)
 
   if (asset.status !== 404 || request.method !== 'GET') return asset
   if (!(request.headers.get('accept') || '').includes('text/html')) return asset
 
-  return env.ASSETS.fetch(new Request(new URL('/index.html', url), request))
+  return embeddedAsset('/index.html') || env.ASSETS.fetch(new Request(new URL('/index.html', url), request))
 }
 
 async function supabase<T>(env: Env, path: string, init: RequestInit = {}, prefer?: string): Promise<T> {
