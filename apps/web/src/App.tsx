@@ -136,7 +136,10 @@ function LoginPage() {
   const login = async () => {
     setLoading(true); setError('')
     const result = await supabase.auth.signInWithPassword({ email: 'admin@soundpark.local', password })
-    if (result.error) setError('Неверный пароль')
+    if (result.error) {
+      const invalidCredentials = result.error.message.toLowerCase().includes('invalid login credentials')
+      setError(invalidCredentials ? 'Неверный пароль' : 'Сервис авторизации временно недоступен. Попробуйте через несколько минут.')
+    }
     setLoading(false)
   }
   return <Box sx={{ minHeight: '100vh', bgcolor: '#f5f7f9', display: 'grid', placeItems: 'center', p: 2 }}>
